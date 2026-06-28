@@ -35,6 +35,6 @@ def predict_skin(image):
 
     prediction = np.argmax(output)
 
-    confidence = float(np.max(output))
+    confidence = float(np.max(output)) 
 
     return LABELS[prediction], confidence
