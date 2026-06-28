@@ -1,0 +1,16 @@
+SkinType,ProductName,Category,Brand
+Oily,Cetaphil Oily Skin Cleanser,Cleanser,Cetaphil
+Oily,Minimalist Niacinamide 10%,Serum,Minimalist
+Oily,Neutrogena Hydro Boost,Moisturizer,Neutrogena
+Dry,CeraVe Hydrating Cleanser,Cleanser,CeraVe
+Dry,L'Oreal Hyaluronic Acid,Serum,L'Oreal
+Dry,CeraVe Moisturizing Cream,Moisturizer,CeraVe
+Combination,Simple Face Wash,Cleanser,Simple
+Combination,Garnier Vitamin C Serum,Serum,Garnier
+Combination,Ponds Super Light Gel,Moisturizer,Ponds
+Normal,Dove Face Wash,Cleanser,Dove
+Normal,Minimalist Vitamin C,Serum,Minimalist
+Normal,Nivea Soft Cream,Moisturizer,Nivea
+Sensitive,Cetaphil Gentle Skin Cleanser,Cleanser,Cetaphil
+Sensitive,CeraVe Moisturizer,Moisturizer,CeraVe
+Sensitive,Neutrogena Mineral Sunscreen,Sunscreen,Neutrogena
