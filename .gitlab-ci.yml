@@ -1,0 +1,38 @@
+stages:
+  - quality
+  - test
+
+before_script:
+  - python --version
+  - pip install --upgrade pip
+  - pip install -r requirements.txt
+
+black:
+  stage: quality
+  script:
+    - black --check .
+
+isort:
+  stage: quality
+  script:
+    - isort . --check-only
+
+flake8:
+  stage: quality
+  script:
+    - flake8 .
+
+mypy:
+  stage: quality
+  script:
+    - mypy .
+
+bandit:
+  stage: quality
+  script:
+    - bandit -r .
+
+pytest:
+  stage: test
+  script:
+    - pytest
