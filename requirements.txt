@@ -1,0 +1,16 @@
+streamlit==1.46.0
+numpy
+pandas
+opencv-python
+Pillow
+onnxruntime
+scikit-learn
+matplotlib
+reportlab
+pytest
+black
+flake8
+isort
+mypy
+bandit
+pre-commit
