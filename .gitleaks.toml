@@ -1,0 +1,15 @@
+title = "Skin Predictor Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow repository documentation and generated non-secret assets."
+paths = [
+  '''LICENSE''',
+  '''CHANGELOG\.md''',
+  '''USER_MANUAL\.md''',
+  '''README\.md''',
+  '''reports/.*''',
+  '''uploads/.*''',
+]

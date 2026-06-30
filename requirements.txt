@@ -8,9 +8,16 @@ scikit-learn
 matplotlib
 reportlab
 pytest
+pytest-cov
 black
 flake8
 isort
 mypy
 bandit
 pre-commit
+ruff
+vulture
+pylint
+semgrep
+pyupgrade
+pip-audit

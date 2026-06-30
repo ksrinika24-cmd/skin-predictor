@@ -1,5 +1,5 @@
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ["py311"]
 
 [tool.isort]
@@ -8,6 +8,100 @@ profile = "black"
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
+ignore_errors = true
+warn_unused_configs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = [
+    "venv/*",
+    ".venv/*",
+    "tests/*",
+    "uploads/*",
+    "reports/*",
+    "__pycache__/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 0
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    "venv",
+    ".venv",
+    "__pycache__",
+    "uploads",
+    "reports",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+    "E501",
+    "F401",
+    "F403",
+    "F405",
+    "F841",
+    "B008",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.pylint.main]
+py-version = "3.11"
+ignore = ["venv", ".venv", "__pycache__", "uploads", "reports"]
+jobs = 0
+fail-under = 0
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "invalid-name",
+    "line-too-long",
+    "too-few-public-methods",
+    "too-many-locals",
+    "too-many-statements",
+    "too-many-branches",
+    "too-many-arguments",
+    "broad-exception-caught",
+    "import-error",
+    "unused-import",
+    "wrong-import-position",
+    "duplicate-code",
+]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.reports]
+score = true
+
+[tool.vulture]
+exclude = ["venv/", ".venv/", "uploads/", "reports/"]
+ignore_decorators = ["@st.cache_resource", "@st.cache_data"]
+min_confidence = 100
+paths = ["."]
+sort_by_size = true

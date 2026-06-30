@@ -1,0 +1,42 @@
+rules:
+  - id: python-dangerous-eval
+    languages:
+      - python
+    severity: ERROR
+    message: Avoid eval() because it can execute untrusted code.
+    pattern: eval(...)
+
+  - id: python-dangerous-exec
+    languages:
+      - python
+    severity: ERROR
+    message: Avoid exec() because it can execute untrusted code.
+    pattern: exec(...)
+
+  - id: python-hardcoded-secret-key
+    languages:
+      - python
+    severity: WARNING
+    message: Do not hard-code secret keys in source files.
+    patterns:
+      - pattern-either:
+          - pattern: $NAME = "$VALUE"
+          - pattern: $NAME = '$VALUE'
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(secret|token|password|api[_-]?key|private[_-]?key).*
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: .{12,}
+
+  - id: python-insecure-subprocess-shell
+    languages:
+      - python
+    severity: WARNING
+    message: Avoid shell=True in subprocess calls.
+    pattern-either:
+      - pattern: subprocess.call(..., shell=True, ...)
+      - pattern: subprocess.run(..., shell=True, ...)
+      - pattern: subprocess.Popen(..., shell=True, ...)
+      - pattern: subprocess.check_call(..., shell=True, ...)
+      - pattern: subprocess.check_output(..., shell=True, ...)
