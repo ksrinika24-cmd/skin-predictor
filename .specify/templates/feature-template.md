@@ -1,48 +1,123 @@
-# Title
+# Feature Specification Template
 
-Provide the feature name and a concise description of the user-facing outcome.
+## Feature Identity
+
+- Feature name:
+- Status:
+- Owner:
+- Target release:
+- Related issue or merge request:
+
+## Summary
+
+Describe the user problem, the proposed feature, and the expected outcome in
+plain language.
 
 ## Background
 
-Explain the problem, target users, current behavior, and why this feature should be added now.
+Explain the current behavior, target users, operational context, and why this
+feature should be added or changed now.
+
+## Goals
+
+- Define the primary user value.
+- Define the product capability being added or changed.
+- Define the measurable quality target.
+
+## Non-Goals
+
+- Identify behavior that is intentionally out of scope.
+- Identify integrations, platforms, or workflows that will not be changed.
+- Identify assumptions that must not be interpreted as requirements.
+
+## Users and Use Cases
+
+- Primary user:
+- Maintainer or operator:
+- Key workflow:
+- Error or recovery workflow:
 
 ## Functional Requirements
 
-- Define the inputs the feature accepts.
-- Define the outputs the feature produces.
-- Define user interactions, validation rules, and error states.
-- Define required data storage or session-state behavior.
-- Define integration points with existing modules.
+1. The feature must preserve offline operation.
+2. The feature must avoid cloud APIs unless explicitly approved in this
+   specification.
+3. The feature must validate user-provided input before processing.
+4. The feature must present clear and actionable output to the user.
+5. The feature must fail gracefully with useful feedback.
+6. The feature must define required data storage or session-state behavior.
+7. The feature must identify integration points with existing modules.
 
-## Non-functional Requirements
+## Non-Functional Requirements
 
-- Performance expectations.
-- Privacy and security requirements.
-- Accessibility and usability expectations.
-- Compatibility with supported Python and deployment environments.
-- Observability, logging, or auditability expectations.
+- Performance expectations:
+- Privacy and security expectations:
+- Accessibility and usability expectations:
+- Compatibility with supported Python and deployment environments:
+- Observability, logging, or auditability expectations:
 
-## Acceptance Criteria
+## Data Requirements
 
-- Given a documented precondition, when a user performs the target action, then the expected result is visible and testable.
-- Given invalid or missing input, when the feature is used, then the application shows a safe and understandable response.
-- Given the feature is complete, when CI runs, then linting, formatting, typing, tests, security scans, dependency audit, and coverage all pass.
+- Input data:
+- Generated data:
+- Stored data:
+- Retention expectations:
+- Validation rules:
+- Sensitive data classification:
 
-## Test Cases
+## Security and Privacy Requirements
+
+- Local file handling constraints:
+- Secret handling requirements:
+- Upload, prediction, report, and log privacy expectations:
+- Dependency and static-analysis expectations:
+
+## Accessibility and UX Requirements
+
+- Required user states:
+- Error messages:
+- Success states:
+- Language and readability expectations:
+- Medical-claim limitations:
+
+## Testing Requirements
 
 - Unit tests:
 - Integration tests:
 - Security tests:
-- Manual validation:
+- UI or manual checks:
 - Regression tests:
 
-## Risks
+## Documentation Requirements
 
-- Product risks:
-- Technical risks:
-- Privacy risks:
-- Security risks:
-- Operational risks:
+- README updates:
+- User guide updates:
+- Architecture updates:
+- Security documentation updates:
+- Release notes:
+
+## Acceptance Criteria
+
+- Functional requirements are implemented and testable.
+- Invalid or missing input produces a safe and understandable response.
+- Automated tests pass.
+- Formatting, linting, typing, coverage, security scans, dependency audit, and
+  compliance checks pass.
+- Documentation is updated.
+- Reviewers confirm the implementation matches this specification.
+
+## Risks and Mitigations
+
+- Product risk:
+  Mitigation:
+- Technical risk:
+  Mitigation:
+- Privacy risk:
+  Mitigation:
+- Security risk:
+  Mitigation:
+- Operational risk:
+  Mitigation:
 
 ## Dependencies
 
@@ -50,4 +125,8 @@ Explain the problem, target users, current behavior, and why this feature should
 - External packages:
 - Data files or models:
 - CI/CD requirements:
-- Documentation updates:
+- Documentation:
+
+## Release Notes
+
+Summarize the user-visible change in release-note language.
