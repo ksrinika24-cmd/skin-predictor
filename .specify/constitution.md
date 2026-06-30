@@ -1,39 +1,63 @@
-# Skin Predictor Constitution
+# Skin Predictor Engineering Constitution
 
 ## Purpose
 
-Skin Predictor is a privacy-first Python application that analyzes facial skin images locally and produces practical skincare recommendations and reports. The repository must remain easy to audit, safe to run, and suitable for healthcare-adjacent portfolio demonstration.
+Skin Predictor is a privacy-first Python application for local skin type prediction, skincare guidance, and report generation. This constitution defines the repository standards required to keep the project maintainable, secure, testable, and suitable for production-style review.
 
-## Product Principles
+## Coding Standards
 
-1. Local-first processing is required for image analysis unless a future specification explicitly introduces an external service with user consent.
-2. User-facing changes must preserve privacy, accessibility, and clear language.
-3. AI output must be framed as informational support, not as medical diagnosis.
-4. Existing application behavior must not be removed to satisfy compliance tooling.
+- Python code must be compatible with Python 3.11.
+- Application behavior must remain local-first; uploaded or captured images must not be sent to external services unless a future specification explicitly approves that change.
+- Source code should be readable, modular, and consistent with the existing package layout.
+- Formatting must be enforced with Ruff Format.
+- Linting must be enforced with Ruff, Flake8, Pylint, Vulture, Pyupgrade, and Bandit.
+- Type checking must be enforced with Mypy.
+- Configuration should be centralized in standard project files such as `pyproject.toml`, `.pre-commit-config.yaml`, and `.gitlab-ci.yml`.
+- Application functionality must not be removed or weakened to satisfy tooling.
 
-## Engineering Principles
+## Testing Policy
 
-1. Changes must be small, reviewable, and covered by the appropriate quality checks.
-2. Configuration belongs in standard project files such as `pyproject.toml`, `.gitlab-ci.yml`, and tool-specific config files.
-3. CI must run linting, formatting checks, type checks, tests, security scanning, dependency auditing, and coverage reporting.
-4. Secrets must never be committed. Use `.env.example` for documented configuration names only.
+- Automated tests must be written for prediction helpers, preprocessing, recommendation logic, PDF/report generation, and any new user-facing workflow.
+- The test suite must run with `pytest`.
+- Coverage reporting must generate `coverage.xml` using `pytest-cov`.
+- Tests should avoid network dependencies and should not require real secrets.
+- Regression tests should be added for bug fixes whenever practical.
+- CI must fail when tests fail.
 
-## Quality Gates
+## Documentation Policy
 
-Every merge request should pass:
+- User-facing behavior must be documented in `README.md` or `USER_MANUAL.md`.
+- Contributor workflows must remain documented in `CONTRIBUTING.md` and `AGENTS.md`.
+- Security reporting must remain documented in `SECURITY.md`.
+- Notable changes must be recorded in `CHANGELOG.md` or generated through the configured Git-Cliff workflow.
+- New features must include a specification under `specs/` before implementation.
+- Specifications must describe goals, user stories, functional requirements, non-functional requirements, acceptance criteria, test scenarios, risks, dependencies, and future improvements.
 
-- Ruff linting
-- Ruff formatting check
-- Mypy type checking
-- Pylint static analysis
-- Vulture dead-code scan
-- Bandit security scan
-- Semgrep security scan
-- Gitleaks secret scan
-- pip-audit dependency audit
-- pytest test suite
-- pytest coverage XML generation
+## Security Policy
 
-## Specification Workflow
+- Secrets, tokens, credentials, private keys, and production configuration values must never be committed.
+- `.env.example` may contain variable names and safe placeholder values only.
+- Secret scanning must run with Gitleaks.
+- Dependency auditing must run with `pip-audit`.
+- Static security analysis must run with Bandit and Semgrep.
+- Any dependency with a known vulnerability must be reviewed and upgraded, pinned, or documented with a temporary exception.
+- Generated reports and uploaded images should be treated as sensitive user data and should not be committed.
 
-New features should start as a document under `specs/`. Each specification should describe the user problem, acceptance criteria, non-goals, privacy impact, test plan, and rollout notes before implementation begins.
+## CI Requirements
+
+- GitLab CI must include the following stages: `lint`, `format`, `type_check`, `test`, and `coverage`.
+- CI jobs must install project dependencies before executing checks.
+- The lint stage must run Ruff and include security and dependency audit jobs.
+- The format stage must run `ruff format --check .`.
+- The type check stage must run `mypy .`.
+- The test stage must run `pytest`.
+- The coverage stage must run `pytest --cov=. --cov-report=xml --cov-report=term` and publish `coverage.xml`.
+- CI configuration must be deterministic and suitable for a clean GitLab runner.
+
+## Review Policy
+
+- Merge requests should be small enough to review safely.
+- Reviewers should verify that application behavior, privacy guarantees, and documentation remain consistent.
+- Changes that affect prediction, reporting, recommendations, security, or CI must include a clear explanation and validation evidence.
+- New dependencies must be justified and must pass dependency audit.
+- A release tag should point to the latest production-ready commit before release.

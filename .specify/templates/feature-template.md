@@ -1,44 +1,53 @@
-# Feature Specification: <Feature Name>
+# Title
 
-## Summary
+Provide the feature name and a concise description of the user-facing outcome.
 
-Describe the user-facing capability in one or two paragraphs.
+## Background
 
-## User Problem
+Explain the problem, target users, current behavior, and why this feature should be added now.
 
-Explain who needs this feature and what problem it solves.
+## Functional Requirements
 
-## Goals
+- Define the inputs the feature accepts.
+- Define the outputs the feature produces.
+- Define user interactions, validation rules, and error states.
+- Define required data storage or session-state behavior.
+- Define integration points with existing modules.
 
-- Goal 1
-- Goal 2
-- Goal 3
+## Non-functional Requirements
 
-## Non-Goals
-
-- Out-of-scope item 1
-- Out-of-scope item 2
-
-## User Stories
-
-- As a user, I want to <action> so that <outcome>.
-- As an operator, I want to <action> so that <outcome>.
+- Performance expectations.
+- Privacy and security requirements.
+- Accessibility and usability expectations.
+- Compatibility with supported Python and deployment environments.
+- Observability, logging, or auditability expectations.
 
 ## Acceptance Criteria
 
-- Given <context>, when <action>, then <observable result>.
-- Given <context>, when <action>, then <observable result>.
+- Given a documented precondition, when a user performs the target action, then the expected result is visible and testable.
+- Given invalid or missing input, when the feature is used, then the application shows a safe and understandable response.
+- Given the feature is complete, when CI runs, then linting, formatting, typing, tests, security scans, dependency audit, and coverage all pass.
 
-## Privacy and Security
-
-Document data handled, storage behavior, secret handling, and security controls.
-
-## Test Plan
+## Test Cases
 
 - Unit tests:
 - Integration tests:
-- Manual checks:
+- Security tests:
+- Manual validation:
+- Regression tests:
 
-## Rollout Plan
+## Risks
 
-Describe release steps, migration requirements, and rollback notes.
+- Product risks:
+- Technical risks:
+- Privacy risks:
+- Security risks:
+- Operational risks:
+
+## Dependencies
+
+- Internal modules:
+- External packages:
+- Data files or models:
+- CI/CD requirements:
+- Documentation updates:
