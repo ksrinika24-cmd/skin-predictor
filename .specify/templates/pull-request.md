@@ -7,9 +7,9 @@ issue.
 
 ## Changes
 
-- 
-- 
-- 
+- Document the primary implementation change.
+- Document test, documentation, or configuration updates.
+- Document any security, privacy, or release impact.
 
 ## Testing
 

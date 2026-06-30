@@ -6,9 +6,9 @@ Describe the defect and affected workflow.
 
 ## Steps to Reproduce
 
-1. 
-2. 
-3. 
+1. Open the affected workflow.
+2. Perform the action that triggers the issue.
+3. Observe the reported behavior.
 
 ## Expected Behavior
 
