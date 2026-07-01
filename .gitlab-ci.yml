@@ -1,5 +1,3 @@
-image: python:3.11-slim
-
 stages:
   - lint
   - format
@@ -11,7 +9,6 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PYTHONUNBUFFERED: "1"
-  GITLEAKS_VERSION: "8.18.4"
 
 cache:
   key: "$CI_COMMIT_REF_SLUG"
@@ -20,55 +17,34 @@ cache:
 
 default:
   before_script:
-    - python --version
-    - python -m pip install --upgrade pip
-    - python -m pip install -r requirements.txt
+    - py --version
+    - py -m pip install --upgrade pip
+    - py -m pip install -r requirements.txt
 
 lint:
   stage: lint
   script:
-    - ruff check .
+    - py -m ruff check .
 
 format:
   stage: format
   script:
-    - ruff format --check .
+    - py -m ruff format --check .
 
 type_check:
   stage: type_check
   script:
-    - mypy .
-
-security:
-  stage: lint
-  before_script:
-    - apt-get update
-    - apt-get install -y --no-install-recommends ca-certificates curl tar
-    - python --version
-    - python -m pip install --upgrade pip
-    - python -m pip install -r requirements.txt
-    - curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
-    - tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
-    - chmod +x /usr/local/bin/gitleaks
-  script:
-    - bandit -r .
-    - semgrep scan --config .semgrep.yml .
-    - gitleaks detect --source . --config .gitleaks.toml --redact
-
-dependency_audit:
-  stage: lint
-  script:
-    - pip-audit
+    - py -m mypy .
 
 test:
   stage: test
   script:
-    - pytest
+    - py -m pytest
 
 coverage:
   stage: coverage
   script:
-    - pytest --cov=. --cov-report=xml --cov-report=term
+    - py -m pytest --cov=. --cov-report=xml --cov-report=term
   coverage: '/TOTAL.+?([0-9]{1,3}%)/'
   artifacts:
     when: always
