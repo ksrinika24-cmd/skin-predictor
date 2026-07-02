@@ -1,57 +1,30 @@
-stages:
-  - lint
-  - format
-  - type_check
-  - test
-  - coverage
-
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  PIP_DISABLE_PIP_VERSION_CHECK: "1"
-  PYTHONUNBUFFERED: "1"
-
-cache:
-  key: "$CI_COMMIT_REF_SLUG"
-  paths:
-    - .cache/pip
-
 default:
   before_script:
-    - py --version
-    - py -m pip install --upgrade pip
-    - py -m pip install -r requirements.txt
+    - python --version
+    - python -m pip install --upgrade pip
+    - python -m pip install -r requirements.txt
 
 lint:
   stage: lint
   script:
-    - py -m ruff check .
+    - python -m ruff check .
 
 format:
   stage: format
   script:
-    - py -m ruff format --check .
+    - python -m ruff format --check .
 
 type_check:
   stage: type_check
   script:
-    - py -m mypy .
+    - python -m mypy .
 
 test:
   stage: test
   script:
-    - py -m pytest
+    - python -m pytest
 
 coverage:
   stage: coverage
   script:
-    - py -m pytest --cov=. --cov-report=xml --cov-report=term
-  coverage: '/TOTAL.+?([0-9]{1,3}%)/'
-  artifacts:
-    when: always
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
-    paths:
-      - coverage.xml
-    expire_in: 1 week
+    - python -m pytest --cov=. --cov-report=xml --cov-report=term
