@@ -9,6 +9,7 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PYTHONUNBUFFERED: "1"
+  PYTHON: "C:\\Program Files\\Python315\\python.exe"
 
 cache:
   key: "$CI_COMMIT_REF_SLUG"
@@ -17,34 +18,34 @@ cache:
 
 default:
   before_script:
-    - python --version
-    - python -m pip install --upgrade pip
-    - python -m pip install -r requirements.txt
+    - '& "$env:PYTHON" --version'
+    - '& "$env:PYTHON" -m pip install --upgrade pip'
+    - '& "$env:PYTHON" -m pip install -r requirements.txt'
 
 lint:
   stage: lint
   script:
-    - python -m ruff check .
+    - '& "$env:PYTHON" -m ruff check .'
 
 format:
   stage: format
   script:
-    - python -m ruff format --check .
+    - '& "$env:PYTHON" -m ruff format --check .'
 
 type_check:
   stage: type_check
   script:
-    - python -m mypy .
+    - '& "$env:PYTHON" -m mypy .'
 
 test:
   stage: test
   script:
-    - python -m pytest
+    - '& "$env:PYTHON" -m pytest'
 
 coverage:
   stage: coverage
   script:
-    - python -m pytest --cov=. --cov-report=xml --cov-report=term
+    - '& "$env:PYTHON" -m pytest --cov=. --cov-report=xml --cov-report=term'
   coverage: '/TOTAL.+?([0-9]{1,3}%)/'
   artifacts:
     when: always
