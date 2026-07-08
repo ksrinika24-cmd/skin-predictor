@@ -1,3 +1,31 @@
+# =============================================================================
+# .gitlab-ci.yml  –  Windows GitLab Shell Runner (PowerShell executor)
+# GitLab Runner 19.x compatible
+# =============================================================================
+#
+# KEY DESIGN DECISIONS
+# --------------------
+# 1.  uv is used as the package / venv manager (fast, self-contained binary).
+# 2.  uv.exe is downloaded once per job, located with Get-ChildItem -Recurse
+#     (avoids the wildcard-in-middle-segment bug in PowerShell Copy-Item),
+#     then copied to the project root where '.\uv.exe' always works.
+# 3.  $ErrorActionPreference = "Stop" is set at the top of EVERY multi-line
+#     script block so that any PowerShell error immediately fails the job.
+# 4.  GitLab CI '|' (literal block) multi-line scripts each run in their OWN
+#     PowerShell process on a Shell runner.  Variables set inside one block
+#     are NOT visible in the next separate '- ...' step.  Therefore the
+#     entire setup (download → extract → locate → copy → verify → venv →
+#     install) lives in ONE single '|' block so $uvFound stays in scope.
+# 5.  Instead of trying to pass $env:PYTHON between before_script and script
+#     (different processes), every job calls uv run / uv pip run directly,
+#     or derives the venv path from the well-known relative path .venv\Scripts\python.exe.
+# 6.  The .venv directory is NOT cached.  Caching a venv that contains
+#     absolute paths causes breakage when the runner workspace path changes
+#     between pipelines.  uv re-creates the venv in seconds.
+# 7.  PIP_CACHE_DIR is expressed with a backslash-safe value so it works on
+#     Windows Shell runners where $CI_PROJECT_DIR uses backslashes.
+# =============================================================================
+
 stages:
   - lint
   - format
@@ -6,47 +34,288 @@ stages:
   - coverage
 
 variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  # ---------------------------------------------------------------------------
+  # uv download URL – pinned to the Windows x86-64 MSVC binary.
+  # Change only if you need a different architecture (e.g. arm64).
+  # ---------------------------------------------------------------------------
+  UV_DOWNLOAD_URL: "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+
+  # ---------------------------------------------------------------------------
+  # Python version requested for the virtual environment.
+  # uv will locate this interpreter from the system PATH.
+  # If it cannot be found, Step 6 prints a clear diagnostic and exits.
+  # ---------------------------------------------------------------------------
+  PYTHON_VERSION: "3.11"
+
+  # ---------------------------------------------------------------------------
+  # Tell pip / uv where to store the download cache.
+  # Using $CI_PROJECT_DIR with a backslash sub-path is safe on Windows because
+  # GitLab expands $CI_PROJECT_DIR before PowerShell sees the string.
+  # We keep pip cache for faster re-installs if the runner reuses the workspace.
+  # ---------------------------------------------------------------------------
+  UV_CACHE_DIR: "$CI_PROJECT_DIR\\.cache\\uv"
   PYTHONUNBUFFERED: "1"
-  PYTHON: "C:\\Program Files\\Python315\\python.exe"
 
+# ---------------------------------------------------------------------------
+# Cache: only cache the uv download cache (portable, path-independent).
+# Do NOT cache .venv – venvs contain absolute paths and break across runners.
+# ---------------------------------------------------------------------------
 cache:
-  key: "$CI_COMMIT_REF_SLUG"
+  key: "uv-cache-$CI_COMMIT_REF_SLUG"
   paths:
-    - .cache/pip
+    - .cache/uv
 
+# =============================================================================
+# DEFAULT before_script
+# Runs before every job's 'script' section.
+# The entire setup is ONE PowerShell '|' block so variable scope is preserved.
+# =============================================================================
 default:
   before_script:
-    - '& "$env:PYTHON" --version'
-    - '& "$env:PYTHON" -m pip install --upgrade pip'
-    - '& "$env:PYTHON" -m pip install -r requirements.txt'
+    - |
+      # -----------------------------------------------------------------------
+      # SETUP – runs as a single PowerShell process so $uvFound stays in scope
+      # -----------------------------------------------------------------------
+
+      # Stop on ANY error immediately (PowerShell equivalent of bash set -e).
+      $ErrorActionPreference = "Stop"
+
+      # -----------------------------------------------------------------------
+      # DIAGNOSTIC 1 – Print current working directory
+      # -----------------------------------------------------------------------
+      Write-Host ""
+      Write-Host "================================================================" -ForegroundColor Cyan
+      Write-Host " CI SETUP  –  Windows GitLab Shell Runner" -ForegroundColor Cyan
+      Write-Host "================================================================" -ForegroundColor Cyan
+      Write-Host "[INFO] Working directory : $((Get-Location).Path)"
+      Write-Host "[INFO] GitLab job        : $env:CI_JOB_NAME"
+      Write-Host "[INFO] Git ref           : $env:CI_COMMIT_REF_NAME"
+      Write-Host "[INFO] Runner            : $env:CI_RUNNER_DESCRIPTION"
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # DIAGNOSTIC 2 – List top-level project files (depth 1, no recursion)
+      #                to give a quick sanity check of the workspace.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Project root contents (depth 1) ---" -ForegroundColor DarkCyan
+      Get-ChildItem -Path "." | Select-Object Mode, LastWriteTime, Length, Name | Format-Table -AutoSize
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 1 – Check that Python 3.11 is available on PATH.
+      #          uv will also look for it, but we detect the problem early so
+      #          the error message is clear ("Python 3.11 not found") instead of
+      #          the cryptic uv error that appears when the interpreter is absent.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Checking for Python $env:PYTHON_VERSION on PATH ---" -ForegroundColor DarkCyan
+
+      # Try common interpreter names: python3.11, python3, python
+      $pythonExe = $null
+      foreach ($candidate in @("python$env:PYTHON_VERSION", "python3", "python")) {
+          $found = Get-Command $candidate -ErrorAction SilentlyContinue
+          if ($found) {
+              $ver = & $found.Source --version 2>&1
+              if ($ver -match "Python $env:PYTHON_VERSION") {
+                  $pythonExe = $found.Source
+                  break
+              }
+          }
+      }
+
+      if ($null -eq $pythonExe) {
+          Write-Host ""
+          Write-Host "FATAL: Python $env:PYTHON_VERSION was not found on the runner's PATH." -ForegroundColor Red
+          Write-Host "       Install Python $env:PYTHON_VERSION on the runner machine and ensure it is in PATH." -ForegroundColor Red
+          Write-Host "       Available Python-like executables:" -ForegroundColor Yellow
+          Get-Command python* -ErrorAction SilentlyContinue | Select-Object Name, Source | Format-Table -AutoSize
+          exit 1
+      }
+
+      Write-Host "[OK] Python found: $pythonExe" -ForegroundColor Green
+      & $pythonExe --version
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 2 – Download the latest uv Windows x64 ZIP from GitHub releases.
+      #          -UseBasicParsing avoids IE COM object dependency on headless
+      #          Windows Server runners.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Downloading uv ---" -ForegroundColor DarkCyan
+      Write-Host "[INFO] URL: $env:UV_DOWNLOAD_URL"
+
+      # Remove stale artifacts from a previous (failed) run in the same workspace.
+      foreach ($stale in @("uv.zip", "uv_extracted", ".\uv.exe")) {
+          if (Test-Path $stale) {
+              Write-Host "[INFO] Removing stale: $stale"
+              Remove-Item -Recurse -Force $stale
+          }
+      }
+
+      Invoke-WebRequest -Uri $env:UV_DOWNLOAD_URL -OutFile "uv.zip" -UseBasicParsing
+      Write-Host "[OK] Downloaded uv.zip ($((Get-Item 'uv.zip').Length) bytes)" -ForegroundColor Green
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 3 – Extract the ZIP.
+      #          -Force overwrites if something already exists (defensive).
+      # -----------------------------------------------------------------------
+      Write-Host "--- Extracting uv.zip ---" -ForegroundColor DarkCyan
+      Expand-Archive -Path "uv.zip" -DestinationPath "uv_extracted" -Force
+      Write-Host "[OK] Extracted to: $((Get-Item 'uv_extracted').FullName)" -ForegroundColor Green
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # DIAGNOSTIC 3 – Show every file inside uv_extracted so the folder
+      #                structure is visible in the job log.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Contents of uv_extracted (recursive) ---" -ForegroundColor DarkCyan
+      Get-ChildItem -Path "uv_extracted" -Recurse | Select-Object FullName | Format-Table -AutoSize
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 4 – Locate uv.exe using Get-ChildItem -Recurse.
+      #
+      #          WHY NOT Copy-Item with a wildcard path?
+      #          PowerShell's Copy-Item resolves wildcards only in the LAST
+      #          path segment.  A middle-segment wildcard like:
+      #              uv_extracted\uv-*\uv.exe
+      #          is treated as a literal string, so it matches nothing and
+      #          fails silently (or throws a non-terminating error that
+      #          $ErrorActionPreference = "Stop" still won't catch for Copy-Item).
+      #          Get-ChildItem -Recurse -Filter "uv.exe" always works regardless
+      #          of how many sub-directories the ZIP creates.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Locating uv.exe inside uv_extracted ---" -ForegroundColor DarkCyan
+      $uvFound = Get-ChildItem -Path "uv_extracted" -Recurse -Filter "uv.exe" -ErrorAction SilentlyContinue |
+                 Select-Object -First 1
+
+      if ($null -eq $uvFound) {
+          Write-Host ""
+          Write-Host "FATAL: uv.exe was not found anywhere inside uv_extracted." -ForegroundColor Red
+          Write-Host "       The ZIP may have changed its internal structure." -ForegroundColor Red
+          Write-Host "       All files in uv_extracted:" -ForegroundColor Yellow
+          Get-ChildItem -Path "uv_extracted" -Recurse | Select-Object FullName | Format-Table -AutoSize
+          exit 1
+      }
+
+      Write-Host "[OK] uv.exe discovered at: $($uvFound.FullName)" -ForegroundColor Green
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 5 – Copy uv.exe to the project root.
+      #          Using the resolved .FullName (no wildcard) so Copy-Item is safe.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Copying uv.exe to project root ---" -ForegroundColor DarkCyan
+      Copy-Item -Path $uvFound.FullName -Destination ".\uv.exe" -Force
+      Write-Host "[OK] Copied to: $((Get-Item '.\uv.exe').FullName)" -ForegroundColor Green
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 6 – Verify uv.exe exists at the destination.
+      #          Belt-and-suspenders check; exits with a clear message if missing.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Verifying .\uv.exe ---" -ForegroundColor DarkCyan
+      if (-not (Test-Path ".\uv.exe")) {
+          Write-Host "FATAL: .\uv.exe does not exist after the copy step." -ForegroundColor Red
+          Write-Host "       Check runner permissions on the workspace directory." -ForegroundColor Red
+          exit 1
+      }
+      Write-Host "[OK] .\uv.exe exists: $((Get-Item '.\uv.exe').FullName) ($((Get-Item '.\uv.exe').Length) bytes)" -ForegroundColor Green
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 7 – Confirm uv.exe is functional by printing its version.
+      #          If this fails the binary is corrupt or blocked by AV.
+      # -----------------------------------------------------------------------
+      Write-Host "--- uv version ---" -ForegroundColor DarkCyan
+      .\uv.exe --version
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 8 – Create the virtual environment.
+      #          --python accepts "3.11" and uv resolves the interpreter from PATH.
+      #          If Python 3.11 is not found by uv it exits non-zero, which
+      #          $ErrorActionPreference = "Stop" turns into a job failure.
+      # -----------------------------------------------------------------------
+      Write-Host "--- Creating virtual environment (Python $env:PYTHON_VERSION) ---" -ForegroundColor DarkCyan
+      .\uv.exe venv .venv --python $env:PYTHON_VERSION
+      Write-Host "[OK] Virtual environment created at: $((Get-Item '.venv').FullName)" -ForegroundColor Green
+      Write-Host ""
+
+      # -----------------------------------------------------------------------
+      # STEP 9 – Install project dependencies with uv pip.
+      #          We point uv at the project virtualenv explicitly so it does not
+      #          fall back to the system Python.
+      #          --no-cache disables uv's own cache here; the UV_CACHE_DIR
+      #          variable controls where any caching happens (see top of file).
+      # -----------------------------------------------------------------------
+      Write-Host "--- Installing dependencies from requirements.txt ---" -ForegroundColor DarkCyan
+      $env:VIRTUAL_ENV = (Resolve-Path ".venv").Path
+      .\uv.exe pip install -r requirements.txt
+      Write-Host "[OK] Dependencies installed." -ForegroundColor Green
+      Write-Host ""
+
+      Write-Host "================================================================" -ForegroundColor Cyan
+      Write-Host " SETUP COMPLETE" -ForegroundColor Cyan
+      Write-Host "================================================================" -ForegroundColor Cyan
+      Write-Host ""
+
+# =============================================================================
+# JOBS
+# Each job's 'script' is a separate PowerShell process from before_script.
+# We derive the venv python path from the known relative location.
+# Using .\uv.exe run guarantees the venv is active without needing $env:PYTHON.
+# =============================================================================
 
 lint:
   stage: lint
   script:
-    - '& "$env:PYTHON" -m ruff check .'
+    - |
+      $ErrorActionPreference = "Stop"
+      # Resolve venv Python – .venv is always created at the project root.
+      $pythonExe = (Resolve-Path ".venv\Scripts\python.exe").Path
+      Write-Host "[lint] Using Python: $pythonExe"
+      & $pythonExe -m ruff check .
 
 format:
   stage: format
   script:
-    - '& "$env:PYTHON" -m ruff format --check .'
+    - |
+      $ErrorActionPreference = "Stop"
+      $pythonExe = (Resolve-Path ".venv\Scripts\python.exe").Path
+      Write-Host "[format] Using Python: $pythonExe"
+      # --check exits non-zero if any file would be reformatted (CI-safe).
+      & $pythonExe -m ruff format --check .
 
 type_check:
   stage: type_check
   script:
-    - '& "$env:PYTHON" -m mypy .'
+    - |
+      $ErrorActionPreference = "Stop"
+      $pythonExe = (Resolve-Path ".venv\Scripts\python.exe").Path
+      Write-Host "[type_check] Using Python: $pythonExe"
+      & $pythonExe -m mypy .
 
 test:
   stage: test
   script:
-    - '& "$env:PYTHON" -m pytest'
+    - |
+      $ErrorActionPreference = "Stop"
+      $pythonExe = (Resolve-Path ".venv\Scripts\python.exe").Path
+      Write-Host "[test] Using Python: $pythonExe"
+      & $pythonExe -m pytest
 
 coverage:
   stage: coverage
   script:
-    - '& "$env:PYTHON" -m pytest --cov=. --cov-report=xml --cov-report=term'
-  coverage: '/TOTAL.+?([0-9]{1,3}%)/'
+    - |
+      $ErrorActionPreference = "Stop"
+      $pythonExe = (Resolve-Path ".venv\Scripts\python.exe").Path
+      Write-Host "[coverage] Using Python: $pythonExe"
+      & $pythonExe -m pytest --cov=. --cov-report=xml --cov-report=term
+  # Regex to extract coverage percentage from pytest-cov output line:
+  #   TOTAL    1234   123   90%
+  coverage: '/TOTAL.+?(\d{1,3}%)/'
   artifacts:
     when: always
     reports:
